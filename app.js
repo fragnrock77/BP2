@@ -6,6 +6,11 @@ const progressLabel = doc ? doc.getElementById("progress-label") : null;
 const errorMessage = doc ? doc.getElementById("error-message") : null;
 const controlsSection = doc ? doc.getElementById("controls") : { hidden: true };
 const resultsSection = doc ? doc.getElementById("results") : { hidden: true };
+ codex/develop-web-app-for-importing-and-searching-files
+const fileListSection = doc ? doc.getElementById("file-list") : { hidden: true };
+const fileListItems = doc ? doc.getElementById("file-list-items") : null;
+
+ main
 const searchInput = doc ? doc.getElementById("search-input") : { value: "" };
 const searchButton = doc ? doc.getElementById("search-button") : null;
 const resetButton = doc ? doc.getElementById("reset-button") : null;
@@ -33,8 +38,16 @@ let rowTextCache = [];
 let lowerRowTextCache = [];
 let currentPage = 1;
 let currentFileName = "";
+ codex/develop-web-app-for-importing-and-searching-files
+let datasets = [];
+const selectedDatasetIds = new Set();
+let datasetCounter = 0;
+
+function clearAggregatedData() {
+
 
 function resetState() {
+ main
   headers = [];
   rawRows = [];
   filteredRows = [];
@@ -42,15 +55,195 @@ function resetState() {
   lowerRowTextCache = [];
   currentPage = 1;
   currentFileName = "";
-  updateProgress(0, "");
-  clearError();
-  controlsSection.hidden = true;
-  resultsSection.hidden = true;
+ codex/develop-web-app-for-importing-and-searching-files
   pagination.hidden = true;
   if (dataTable) {
     dataTable.innerHTML = "";
   }
   resultStats.textContent = "";
+}
+
+function resetState() {
+  clearAggregatedData();
+  datasets = [];
+  selectedDatasetIds.clear();
+  datasetCounter = 0;
+
+ main
+  updateProgress(0, "");
+  clearError();
+  controlsSection.hidden = true;
+  resultsSection.hidden = true;
+ codex/develop-web-app-for-importing-and-searching-files
+  if (fileListSection) {
+    fileListSection.hidden = true;
+  }
+  if (fileListItems) {
+    fileListItems.innerHTML = "";
+  }
+}
+
+function resolveHeaders(headers, sampleLength) {
+  const count = Math.max(headers ? headers.length : 0, sampleLength || 0);
+  const resolved = [];
+  for (let index = 0; index < count; index += 1) {
+    const header = headers && headers[index];
+    if (header === undefined || header === null || header === "") {
+      resolved.push(`Colonne ${index + 1}`);
+    } else {
+      resolved.push(String(header));
+    }
+  }
+  return resolved;
+}
+
+function sanitizeFileName(name) {
+  if (!name) return "";
+  return name.replace(/\.[^.]+$/, "");
+}
+
+function addDataset(file, parsed) {
+  const { headers: parsedHeaders = [], rows = [] } = parsed;
+  const columnCount = rows.reduce((max, row) => Math.max(max, row.length), parsedHeaders.length);
+  const resolvedHeaders = resolveHeaders(parsedHeaders, columnCount);
+  const dataset = {
+    id: `dataset-${datasetCounter}`,
+    name: file.name,
+    displayName: file.name,
+    baseName: sanitizeFileName(file.name),
+    headers: parsedHeaders,
+    resolvedHeaders,
+    rows,
+    columnCount,
+  };
+  datasetCounter += 1;
+  datasets.push(dataset);
+  selectedDatasetIds.add(dataset.id);
+}
+
+function handleDatasetToggle(event) {
+  const checkbox = event.target;
+  if (!checkbox || !checkbox.dataset.datasetId) {
+    return;
+  }
+
+  const datasetId = checkbox.dataset.datasetId;
+  if (checkbox.checked) {
+    selectedDatasetIds.add(datasetId);
+    clearError();
+  } else {
+    if (selectedDatasetIds.size === 1 && selectedDatasetIds.has(datasetId)) {
+      checkbox.checked = true;
+      showError("Sélectionnez au moins un fichier pour la recherche.");
+      return;
+    }
+    selectedDatasetIds.delete(datasetId);
+  }
+
+  rebuildAggregatedData();
+}
+
+function renderFileList() {
+  if (!fileListItems) {
+    return;
+  }
+
+  fileListItems.innerHTML = "";
+  datasets.forEach((dataset) => {
+    const label = doc.createElement("label");
+    label.className = "file-item";
+    label.dataset.datasetId = dataset.id;
+
+    const checkbox = doc.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.dataset.datasetId = dataset.id;
+    checkbox.checked = selectedDatasetIds.has(dataset.id);
+    checkbox.addEventListener("change", handleDatasetToggle);
+
+    const nameSpan = doc.createElement("span");
+    nameSpan.textContent = dataset.displayName;
+
+    label.appendChild(checkbox);
+    label.appendChild(nameSpan);
+    fileListItems.appendChild(label);
+  });
+
+  if (fileListSection) {
+    fileListSection.hidden = datasets.length === 0;
+  }
+}
+
+function rebuildAggregatedData({ preserveSearch = true } = {}) {
+  clearAggregatedData();
+
+  if (!selectedDatasetIds.size) {
+    resultsSection.hidden = true;
+    return;
+  }
+
+  const selected = datasets.filter((dataset) => selectedDatasetIds.has(dataset.id));
+  if (!selected.length) {
+    resultsSection.hidden = true;
+    return;
+  }
+
+  const combinedHeaders = ["Fichier"];
+  const headerSet = new Set(combinedHeaders);
+
+  selected.forEach((dataset) => {
+    dataset.resolvedHeaders.forEach((headerName) => {
+      if (!headerSet.has(headerName)) {
+        headerSet.add(headerName);
+        combinedHeaders.push(headerName);
+      }
+    });
+  });
+
+  const headerIndexMap = new Map();
+  combinedHeaders.forEach((name, index) => {
+    headerIndexMap.set(name, index);
+  });
+
+  rawRows = [];
+  selected.forEach((dataset) => {
+    const datasetHeaders = dataset.resolvedHeaders;
+    dataset.rows.forEach((row) => {
+      const combinedRow = new Array(combinedHeaders.length).fill("");
+      combinedRow[0] = dataset.displayName;
+      datasetHeaders.forEach((headerName, columnIndex) => {
+        const targetIndex = headerIndexMap.get(headerName);
+        const value = row[columnIndex];
+        combinedRow[targetIndex] = value === undefined || value === null ? "" : value;
+      });
+      rawRows.push(combinedRow);
+    });
+  });
+
+  headers = combinedHeaders;
+  buildCaches();
+  filteredRows = [...rawRows];
+  currentPage = 1;
+
+  currentFileName =
+    selected.length === 1
+      ? selected[0].baseName
+      : "multi_fichiers";
+
+  controlsSection.hidden = false;
+  resultsSection.hidden = false;
+  const activeQuery = preserveSearch ? searchInput.value.trim() : "";
+  if (activeQuery) {
+    performSearch();
+  } else {
+    renderPage(1);
+  }
+
+  pagination.hidden = true;
+  if (dataTable) {
+    dataTable.innerHTML = "";
+  }
+  resultStats.textContent = "";
+ main
 }
 
 function showError(message) {
@@ -85,13 +278,117 @@ function formatBytes(bytes) {
   return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
+ codex/develop-web-app-for-importing-and-searching-files
+async function handleFiles(fileList) {
+  if (!fileList || !fileList.length) return;
+  resetState();
+
+
 async function handleFiles(files) {
   resetState();
   if (!files || !files.length) return;
   const file = files[0];
+ main
   if (fileInput) {
     fileInput.value = "";
   }
+
+ codex/develop-web-app-for-importing-and-searching-files
+  const errors = [];
+  const validFiles = [];
+
+  Array.from(fileList).forEach((file) => {
+    if (file.size > MAX_FILE_SIZE) {
+      errors.push(
+        `Le fichier "${file.name}" est trop volumineux (${formatBytes(file.size)}). Limite : ${formatBytes(
+          MAX_FILE_SIZE
+        )}.`
+      );
+      return;
+    }
+
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (!extension || !["csv", "xlsx", "xls"].includes(extension)) {
+      errors.push(`Format non supporté pour "${file.name}".`);
+      return;
+    }
+
+    validFiles.push({ file, extension });
+  });
+
+  if (!validFiles.length) {
+    if (errors.length) {
+      showError(errors.join("\n"));
+    }
+    return;
+  }
+
+  const totalSize = validFiles.reduce((sum, entry) => sum + entry.file.size, 0);
+  let processedSize = 0;
+
+  for (let index = 0; index < validFiles.length; index += 1) {
+    const { file, extension } = validFiles[index];
+
+    const progressCallback = (percent, label) => {
+      const normalized = percent / 100;
+      const totalPercent = totalSize
+        ? ((processedSize + normalized * file.size) / totalSize) * 100
+        : ((index + normalized) / validFiles.length) * 100;
+      const statusLabel = label || `${Math.round(percent)}%`;
+      updateProgress(Math.min(99, totalPercent), `${file.name} • ${statusLabel}`);
+    };
+
+    updateProgress(
+      totalSize ? (processedSize / totalSize) * 100 : (index / validFiles.length) * 100,
+      `Lecture de ${file.name}`
+    );
+
+    try {
+      let parsed;
+      if (extension === "csv") {
+        parsed = await parseCsv(file, progressCallback);
+      } else {
+        parsed = await parseXlsx(file, progressCallback);
+      }
+
+      const rows = parsed?.rows || [];
+      if (!rows.length) {
+        errors.push(`Aucune donnée trouvée dans "${file.name}".`);
+        continue;
+      }
+
+      addDataset(file, parsed);
+    } catch (error) {
+      console.error(error);
+      errors.push(`Impossible de lire "${file.name}".`);
+    } finally {
+      processedSize += file.size;
+    }
+
+    updateProgress(
+      totalSize ? (processedSize / totalSize) * 100 : ((index + 1) / validFiles.length) * 100,
+      `Chargement de ${index + 1}/${validFiles.length}`
+    );
+  }
+
+  renderFileList();
+
+  if (datasets.length) {
+    rebuildAggregatedData({ preserveSearch: false });
+    resetSearch();
+    updateProgress(100, "Chargement terminé");
+  } else {
+    updateProgress(0, "");
+  }
+
+  if (errors.length) {
+    showError(errors.join("\n"));
+  } else {
+    clearError();
+  }
+}
+
+function parseCsv(file, progressCallback = updateProgress) {
 
   if (file.size > MAX_FILE_SIZE) {
     showError(
@@ -144,6 +441,7 @@ async function handleFiles(files) {
 }
 
 function parseCsv(file) {
+ main
   return new Promise((resolve, reject) => {
     const rows = [];
     let headerRow = null;
@@ -169,7 +467,11 @@ function parseCsv(file) {
 
         totalRows += 1;
         const percent = Math.min(99, Math.round((meta.cursor / file.size) * 100));
+ codex/develop-web-app-for-importing-and-searching-files
+        progressCallback(percent, `${totalRows.toLocaleString()} lignes lues`);
+
         updateProgress(percent, `${totalRows.toLocaleString()} lignes lues`);
+ main
       },
       complete: () => {
         resolve({ headers: headerRow, rows });
@@ -181,9 +483,17 @@ function parseCsv(file) {
   });
 }
 
+ codex/develop-web-app-for-importing-and-searching-files
+async function parseXlsx(file, progressCallback = updateProgress) {
+  progressCallback(10, "Lecture du classeur");
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data, { type: "array", dense: true });
+  progressCallback(60, "Extraction des feuilles");
+
 async function parseXlsx(file) {
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data, { type: "array", dense: true });
+ main
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
     throw new Error("Le fichier ne contient pas de feuille exploitable.");
@@ -191,6 +501,10 @@ async function parseXlsx(file) {
   const sheet = workbook.Sheets[sheetName];
   const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
   const [headerRow, ...rows] = sheetData;
+ codex/develop-web-app-for-importing-and-searching-files
+  progressCallback(90, "Conversion terminée");
+
+ main
   return { headers: headerRow, rows };
 }
 
