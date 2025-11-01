@@ -6,10 +6,15 @@ const progressLabel = doc ? doc.getElementById("progress-label") : null;
 const errorMessage = doc ? doc.getElementById("error-message") : null;
 const controlsSection = doc ? doc.getElementById("controls") : { hidden: true };
 const resultsSection = doc ? doc.getElementById("results") : { hidden: true };
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+const fileListSection = doc ? doc.getElementById("file-list") : { hidden: true };
+const fileListItems = doc ? doc.getElementById("file-list-items") : null;
+
  codex/develop-web-app-for-importing-and-searching-files
 const fileListSection = doc ? doc.getElementById("file-list") : { hidden: true };
 const fileListItems = doc ? doc.getElementById("file-list-items") : null;
 
+ main
  main
 const searchInput = doc ? doc.getElementById("search-input") : { value: "" };
 const searchButton = doc ? doc.getElementById("search-button") : null;
@@ -38,6 +43,32 @@ let rowTextCache = [];
 let lowerRowTextCache = [];
 let currentPage = 1;
 let currentFileName = "";
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+let datasets = [];
+const selectedDatasetIds = new Set();
+let datasetCounter = 0;
+const datasetKeyIndex = new Map();
+const displayNameCounts = new Map();
+
+function getFileKey(file) {
+  const name = file?.name ?? "";
+  const lastModified = file?.lastModified ?? 0;
+  const size = file?.size ?? 0;
+  return `${name}::${lastModified}::${size}`;
+}
+
+function getUniqueDisplayName(name) {
+  if (!name) return "Fichier";
+  const count = displayNameCounts.get(name) ?? 0;
+  displayNameCounts.set(name, count + 1);
+  if (count === 0) {
+    return name;
+  }
+  return `${name} (${count + 1})`;
+}
+
+function clearAggregatedData() {
+
  codex/develop-web-app-for-importing-and-searching-files
 let datasets = [];
 const selectedDatasetIds = new Set();
@@ -48,6 +79,7 @@ function clearAggregatedData() {
 
 function resetState() {
  main
+ main
   headers = [];
   rawRows = [];
   filteredRows = [];
@@ -55,7 +87,10 @@ function resetState() {
   lowerRowTextCache = [];
   currentPage = 1;
   currentFileName = "";
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+
  codex/develop-web-app-for-importing-and-searching-files
+ main
   pagination.hidden = true;
   if (dataTable) {
     dataTable.innerHTML = "";
@@ -68,13 +103,21 @@ function resetState() {
   datasets = [];
   selectedDatasetIds.clear();
   datasetCounter = 0;
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+  datasetKeyIndex.clear();
+  displayNameCounts.clear();
 
+
+ main
  main
   updateProgress(0, "");
   clearError();
   controlsSection.hidden = true;
   resultsSection.hidden = true;
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+
  codex/develop-web-app-for-importing-and-searching-files
+ main
   if (fileListSection) {
     fileListSection.hidden = true;
   }
@@ -102,6 +145,38 @@ function sanitizeFileName(name) {
   return name.replace(/\.[^.]+$/, "");
 }
 
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+function addDataset(file, parsed, key = getFileKey(file)) {
+  const { headers: parsedHeaders = [], rows = [] } = parsed;
+  const columnCount = rows.reduce((max, row) => Math.max(max, row.length), parsedHeaders.length);
+  const resolvedHeaders = resolveHeaders(parsedHeaders, columnCount);
+  const baseName = sanitizeFileName(file.name);
+  const existingIndex = datasetKeyIndex.get(key);
+
+  if (existingIndex !== undefined) {
+    const previous = datasets[existingIndex];
+    const updatedDataset = {
+      ...previous,
+      name: file.name,
+      baseName,
+      headers: parsedHeaders,
+      resolvedHeaders,
+      rows,
+      columnCount,
+      fileKey: key,
+    };
+    datasets[existingIndex] = updatedDataset;
+    selectedDatasetIds.add(updatedDataset.id);
+    datasetKeyIndex.set(key, existingIndex);
+    return updatedDataset;
+  }
+
+  const dataset = {
+    id: `dataset-${datasetCounter}`,
+    name: file.name,
+    displayName: getUniqueDisplayName(file.name),
+    baseName,
+
 function addDataset(file, parsed) {
   const { headers: parsedHeaders = [], rows = [] } = parsed;
   const columnCount = rows.reduce((max, row) => Math.max(max, row.length), parsedHeaders.length);
@@ -111,14 +186,25 @@ function addDataset(file, parsed) {
     name: file.name,
     displayName: file.name,
     baseName: sanitizeFileName(file.name),
+ main
     headers: parsedHeaders,
     resolvedHeaders,
     rows,
     columnCount,
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+    fileKey: key,
+  };
+  datasetCounter += 1;
+  datasets.push(dataset);
+  datasetKeyIndex.set(key, datasets.length - 1);
+  selectedDatasetIds.add(dataset.id);
+  return dataset;
+
   };
   datasetCounter += 1;
   datasets.push(dataset);
   selectedDatasetIds.add(dataset.id);
+ main
 }
 
 function handleDatasetToggle(event) {
@@ -173,6 +259,17 @@ function renderFileList() {
   }
 }
 
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+function aggregateDatasets(allDatasets, selectedIds) {
+  const selected = allDatasets.filter((dataset) => selectedIds.has(dataset.id));
+  if (!selected.length) {
+    return {
+      headers: [],
+      rows: [],
+      fileName: "",
+      selectedCount: 0,
+    };
+
 function rebuildAggregatedData({ preserveSearch = true } = {}) {
   clearAggregatedData();
 
@@ -185,16 +282,31 @@ function rebuildAggregatedData({ preserveSearch = true } = {}) {
   if (!selected.length) {
     resultsSection.hidden = true;
     return;
+ main
   }
 
   const combinedHeaders = ["Fichier"];
   const headerSet = new Set(combinedHeaders);
 
   selected.forEach((dataset) => {
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+    const datasetHeaders = Array.isArray(dataset.resolvedHeaders)
+      ? dataset.resolvedHeaders
+      : resolveHeaders(dataset.headers, dataset.columnCount);
+    datasetHeaders.forEach((headerName, index) => {
+      const safeHeader =
+        headerName === undefined || headerName === null || headerName === ""
+          ? `Colonne ${index + 1}`
+          : String(headerName);
+      if (!headerSet.has(safeHeader)) {
+        headerSet.add(safeHeader);
+        combinedHeaders.push(safeHeader);
+
     dataset.resolvedHeaders.forEach((headerName) => {
       if (!headerSet.has(headerName)) {
         headerSet.add(headerName);
         combinedHeaders.push(headerName);
+ main
       }
     });
   });
@@ -203,6 +315,83 @@ function rebuildAggregatedData({ preserveSearch = true } = {}) {
   combinedHeaders.forEach((name, index) => {
     headerIndexMap.set(name, index);
   });
+
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+  const aggregatedRows = [];
+  selected.forEach((dataset) => {
+    const datasetHeaders = Array.isArray(dataset.resolvedHeaders)
+      ? dataset.resolvedHeaders
+      : resolveHeaders(dataset.headers, dataset.columnCount);
+    dataset.rows.forEach((row) => {
+      const combinedRow = new Array(combinedHeaders.length).fill("");
+      combinedRow[0] = dataset.displayName || dataset.name || dataset.baseName || "";
+      datasetHeaders.forEach((headerName, columnIndex) => {
+        const safeHeader =
+          headerName === undefined || headerName === null || headerName === ""
+            ? `Colonne ${columnIndex + 1}`
+            : String(headerName);
+        const targetIndex = headerIndexMap.get(safeHeader);
+        if (targetIndex !== undefined) {
+          const value = row[columnIndex];
+          combinedRow[targetIndex] = value === undefined || value === null ? "" : value;
+        }
+      });
+      aggregatedRows.push(combinedRow);
+    });
+  });
+
+  const fileName =
+    selected.length === 1
+      ? selected[0].baseName
+      : "multi_fichiers";
+
+  return {
+    headers: combinedHeaders,
+    rows: aggregatedRows,
+    fileName,
+    selectedCount: selected.length,
+  };
+}
+
+function rebuildAggregatedData({ preserveSearch = true } = {}) {
+  const { headers: aggregatedHeaders, rows, fileName, selectedCount } =
+    aggregateDatasets(datasets, selectedDatasetIds);
+
+  headers = aggregatedHeaders;
+  rawRows = rows;
+  buildCaches();
+  filteredRows = [...rawRows];
+  currentPage = 1;
+  currentFileName = fileName;
+
+  if (!selectedCount) {
+    if (dataTable) {
+      dataTable.innerHTML = "";
+    }
+    resultStats.textContent = "";
+    pagination.hidden = true;
+    resultsSection.hidden = true;
+    if (!datasets.length) {
+      controlsSection.hidden = true;
+    }
+    return;
+  }
+
+  controlsSection.hidden = false;
+  resultsSection.hidden = false;
+
+  if (preserveSearch && searchInput.value.trim()) {
+    performSearch();
+    return;
+  }
+
+  if (!preserveSearch) {
+    searchInput.value = "";
+    caseSensitiveToggle.checked = false;
+    exactMatchToggle.checked = false;
+  }
+
+  renderPage(1);
 
   rawRows = [];
   selected.forEach((dataset) => {
@@ -244,6 +433,7 @@ function rebuildAggregatedData({ preserveSearch = true } = {}) {
   }
   resultStats.textContent = "";
  main
+ main
 }
 
 function showError(message) {
@@ -278,6 +468,14 @@ function formatBytes(bytes) {
   return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+async function handleFiles(fileList) {
+  if (!fileList || !fileList.length) return;
+  clearError();
+
+  const hadExistingDatasets = datasets.length > 0;
+
+
  codex/develop-web-app-for-importing-and-searching-files
 async function handleFiles(fileList) {
   if (!fileList || !fileList.length) return;
@@ -289,11 +487,15 @@ async function handleFiles(files) {
   if (!files || !files.length) return;
   const file = files[0];
  main
+ main
   if (fileInput) {
     fileInput.value = "";
   }
 
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+
  codex/develop-web-app-for-importing-and-searching-files
+ main
   const errors = [];
   const validFiles = [];
 
@@ -313,7 +515,12 @@ async function handleFiles(files) {
       return;
     }
 
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+    const key = getFileKey(file);
+    validFiles.push({ file, extension, key });
+
     validFiles.push({ file, extension });
+ main
   });
 
   if (!validFiles.length) {
@@ -325,9 +532,16 @@ async function handleFiles(files) {
 
   const totalSize = validFiles.reduce((sum, entry) => sum + entry.file.size, 0);
   let processedSize = 0;
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+  let updatedDatasets = false;
+
+  for (let index = 0; index < validFiles.length; index += 1) {
+    const { file, extension, key } = validFiles[index];
+
 
   for (let index = 0; index < validFiles.length; index += 1) {
     const { file, extension } = validFiles[index];
+ main
 
     const progressCallback = (percent, label) => {
       const normalized = percent / 100;
@@ -357,7 +571,12 @@ async function handleFiles(files) {
         continue;
       }
 
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+      addDataset(file, parsed, key);
+      updatedDatasets = true;
+
       addDataset(file, parsed);
+ main
     } catch (error) {
       console.error(error);
       errors.push(`Impossible de lire "${file.name}".`);
@@ -371,6 +590,13 @@ async function handleFiles(files) {
     );
   }
 
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+  if (updatedDatasets) {
+    renderFileList();
+    const preserveSearch = hadExistingDatasets && Boolean(searchInput.value.trim());
+    rebuildAggregatedData({ preserveSearch });
+    updateProgress(100, "Chargement terminé");
+
   renderFileList();
 
   if (datasets.length) {
@@ -379,6 +605,7 @@ async function handleFiles(files) {
     updateProgress(100, "Chargement terminé");
   } else {
     updateProgress(0, "");
+ main
   }
 
   if (errors.length) {
@@ -389,6 +616,8 @@ async function handleFiles(files) {
 }
 
 function parseCsv(file, progressCallback = updateProgress) {
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+
 
   if (file.size > MAX_FILE_SIZE) {
     showError(
@@ -442,6 +671,7 @@ function parseCsv(file, progressCallback = updateProgress) {
 
 function parseCsv(file) {
  main
+ main
   return new Promise((resolve, reject) => {
     const rows = [];
     let headerRow = null;
@@ -467,10 +697,14 @@ function parseCsv(file) {
 
         totalRows += 1;
         const percent = Math.min(99, Math.round((meta.cursor / file.size) * 100));
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+        progressCallback(percent, `${totalRows.toLocaleString()} lignes lues`);
+
  codex/develop-web-app-for-importing-and-searching-files
         progressCallback(percent, `${totalRows.toLocaleString()} lignes lues`);
 
         updateProgress(percent, `${totalRows.toLocaleString()} lignes lues`);
+ main
  main
       },
       complete: () => {
@@ -483,16 +717,22 @@ function parseCsv(file) {
   });
 }
 
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+
  codex/develop-web-app-for-importing-and-searching-files
+ main
 async function parseXlsx(file, progressCallback = updateProgress) {
   progressCallback(10, "Lecture du classeur");
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data, { type: "array", dense: true });
   progressCallback(60, "Extraction des feuilles");
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+
 
 async function parseXlsx(file) {
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data, { type: "array", dense: true });
+ main
  main
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
@@ -501,9 +741,13 @@ async function parseXlsx(file) {
   const sheet = workbook.Sheets[sheetName];
   const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
   const [headerRow, ...rows] = sheetData;
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+  progressCallback(90, "Conversion terminée");
+
  codex/develop-web-app-for-importing-and-searching-files
   progressCallback(90, "Conversion terminée");
 
+ main
  main
   return { headers: headerRow, rows };
 }
@@ -943,6 +1187,10 @@ if (typeof module !== "undefined" && module.exports) {
     matchRow,
     convertRowsToCsv,
     buildCaches,
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+    aggregateDatasets,
+
+ main
     __setTestState,
     __getTestState,
   };
