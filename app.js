@@ -6,8 +6,11 @@ const progressLabel = doc ? doc.getElementById("progress-label") : null;
 const errorMessage = doc ? doc.getElementById("error-message") : null;
 const controlsSection = doc ? doc.getElementById("controls") : { hidden: true };
 const resultsSection = doc ? doc.getElementById("results") : { hidden: true };
+ codex/develop-web-app-for-importing-and-searching-files
 const fileListSection = doc ? doc.getElementById("file-list") : { hidden: true };
 const fileListItems = doc ? doc.getElementById("file-list-items") : null;
+
+ main
 const searchInput = doc ? doc.getElementById("search-input") : { value: "" };
 const searchButton = doc ? doc.getElementById("search-button") : null;
 const resetButton = doc ? doc.getElementById("reset-button") : null;
@@ -35,11 +38,16 @@ let rowTextCache = [];
 let lowerRowTextCache = [];
 let currentPage = 1;
 let currentFileName = "";
+ codex/develop-web-app-for-importing-and-searching-files
 let datasets = [];
 const selectedDatasetIds = new Set();
 let datasetCounter = 0;
 
 function clearAggregatedData() {
+
+
+function resetState() {
+ main
   headers = [];
   rawRows = [];
   filteredRows = [];
@@ -47,6 +55,7 @@ function clearAggregatedData() {
   lowerRowTextCache = [];
   currentPage = 1;
   currentFileName = "";
+ codex/develop-web-app-for-importing-and-searching-files
   pagination.hidden = true;
   if (dataTable) {
     dataTable.innerHTML = "";
@@ -59,10 +68,13 @@ function resetState() {
   datasets = [];
   selectedDatasetIds.clear();
   datasetCounter = 0;
+
+ main
   updateProgress(0, "");
   clearError();
   controlsSection.hidden = true;
   resultsSection.hidden = true;
+ codex/develop-web-app-for-importing-and-searching-files
   if (fileListSection) {
     fileListSection.hidden = true;
   }
@@ -225,6 +237,13 @@ function rebuildAggregatedData({ preserveSearch = true } = {}) {
   } else {
     renderPage(1);
   }
+
+  pagination.hidden = true;
+  if (dataTable) {
+    dataTable.innerHTML = "";
+  }
+  resultStats.textContent = "";
+ main
 }
 
 function showError(message) {
@@ -259,14 +278,22 @@ function formatBytes(bytes) {
   return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
+ codex/develop-web-app-for-importing-and-searching-files
 async function handleFiles(fileList) {
   if (!fileList || !fileList.length) return;
   resetState();
 
+
+async function handleFiles(files) {
+  resetState();
+  if (!files || !files.length) return;
+  const file = files[0];
+ main
   if (fileInput) {
     fileInput.value = "";
   }
 
+ codex/develop-web-app-for-importing-and-searching-files
   const errors = [];
   const validFiles = [];
 
@@ -362,6 +389,59 @@ async function handleFiles(fileList) {
 }
 
 function parseCsv(file, progressCallback = updateProgress) {
+
+  if (file.size > MAX_FILE_SIZE) {
+    showError(
+      `Le fichier est trop volumineux (${formatBytes(file.size)}). Limite : ${formatBytes(
+        MAX_FILE_SIZE
+      )}.`
+    );
+    return;
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (!extension || !["csv", "xlsx", "xls"].includes(extension)) {
+    showError("Format non supporté. Seuls les fichiers CSV ou XLSX sont acceptés.");
+    return;
+  }
+
+  currentFileName = file.name.replace(/\.[^.]+$/, "");
+  updateProgress(0, "Préparation...");
+
+  try {
+    let parsed;
+    if (extension === "csv") {
+      parsed = await parseCsv(file);
+    } else {
+      parsed = await parseXlsx(file);
+    }
+
+    ({ headers, rows: rawRows } = parsed);
+    if (!headers || headers.length === 0) {
+      headers = rawRows.shift() || [];
+    }
+    if (!rawRows || rawRows.length === 0) {
+      showError("Aucune donnée trouvée dans le fichier.");
+      return;
+    }
+
+    buildCaches();
+    filteredRows = [...rawRows];
+    controlsSection.hidden = false;
+    resultsSection.hidden = false;
+    renderPage(1);
+  } catch (error) {
+    console.error(error);
+    showError(
+      "Impossible de lire le fichier. Vérifiez son encodage ou son intégrité et réessayez."
+    );
+  } finally {
+    updateProgress(100, "Chargement terminé");
+  }
+}
+
+function parseCsv(file) {
+ main
   return new Promise((resolve, reject) => {
     const rows = [];
     let headerRow = null;
@@ -387,7 +467,11 @@ function parseCsv(file, progressCallback = updateProgress) {
 
         totalRows += 1;
         const percent = Math.min(99, Math.round((meta.cursor / file.size) * 100));
+ codex/develop-web-app-for-importing-and-searching-files
         progressCallback(percent, `${totalRows.toLocaleString()} lignes lues`);
+
+        updateProgress(percent, `${totalRows.toLocaleString()} lignes lues`);
+ main
       },
       complete: () => {
         resolve({ headers: headerRow, rows });
@@ -399,11 +483,17 @@ function parseCsv(file, progressCallback = updateProgress) {
   });
 }
 
+ codex/develop-web-app-for-importing-and-searching-files
 async function parseXlsx(file, progressCallback = updateProgress) {
   progressCallback(10, "Lecture du classeur");
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data, { type: "array", dense: true });
   progressCallback(60, "Extraction des feuilles");
+
+async function parseXlsx(file) {
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data, { type: "array", dense: true });
+ main
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
     throw new Error("Le fichier ne contient pas de feuille exploitable.");
@@ -411,7 +501,10 @@ async function parseXlsx(file, progressCallback = updateProgress) {
   const sheet = workbook.Sheets[sheetName];
   const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
   const [headerRow, ...rows] = sheetData;
+ codex/develop-web-app-for-importing-and-searching-files
   progressCallback(90, "Conversion terminée");
+
+ main
   return { headers: headerRow, rows };
 }
 

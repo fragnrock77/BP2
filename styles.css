@@ -145,6 +145,7 @@ input[type="file"] {
   color: var(--text-muted);
 }
 
+ codex/develop-web-app-for-importing-and-searching-files
 .file-list {
   border: 1px solid var(--border);
   border-radius: 1rem;
@@ -185,6 +186,8 @@ input[type="file"] {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+
+ main
 .error {
   margin-top: 0.75rem;
   color: var(--danger);
