@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Explorateur de données</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>Analyseur de fichiers CSV &amp; XLSX</h1>
+      <p>
+        Importez un fichier volumineux, recherchez rapidement plusieurs mots-clés et
+        exportez les résultats filtrés.
+      </p>
+    </header>
+
+    <main>
+      <section class="uploader" id="drop-zone">
+        <div class="uploader__content">
+          <h2>Importer un fichier</h2>
+          <p>Glissez-déposez votre fichier ici ou</p>
+          <label class="button" for="file-input">sélectionnez un fichier</label>
+          <input
+            id="file-input"
+            type="file"
+            accept=".csv,.xlsx,.xls"
+          />
+          <div class="progress" aria-hidden="true">
+            <div class="progress__bar" id="progress-bar"></div>
+          </div>
+          <p class="progress__label" id="progress-label"></p>
+          <p class="error" id="error-message" role="alert"></p>
+        </div>
+      </section>
+
+      <section class="controls" id="controls" hidden>
+        <h2>Recherche</h2>
+        <div class="controls__grid">
+          <label>
+            Mots-clés (séparés par des virgules, espaces ou opérateurs AND/OR/NOT)
+            <input id="search-input" type="text" placeholder="ex: client, premium AND NOT résilié" />
+          </label>
+          <label class="checkbox">
+            <input id="case-sensitive" type="checkbox" /> Sensible à la casse
+          </label>
+          <label class="checkbox">
+            <input id="exact-match" type="checkbox" /> Correspondance exacte
+          </label>
+          <div class="buttons">
+            <button id="search-button" class="button">Rechercher</button>
+            <button id="reset-button" class="button button--ghost">Réinitialiser</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="results" id="results" hidden>
+        <header class="results__header">
+          <div>
+            <h2>Résultats</h2>
+            <p id="result-stats"></p>
+          </div>
+          <div class="buttons results__exports">
+            <button id="copy-button" class="button button--ghost">Copier</button>
+            <button id="export-csv-button" class="button button--ghost">Exporter CSV</button>
+            <button id="export-xlsx-button" class="button button--ghost">Exporter XLSX</button>
+          </div>
+        </header>
+        <div class="table-wrapper">
+          <table id="data-table" aria-live="polite"></table>
+        </div>
+        <div class="pagination" id="pagination" hidden>
+          <button id="prev-page" class="button button--ghost" disabled>Précédent</button>
+          <span id="page-info"></span>
+          <button id="next-page" class="button button--ghost" disabled>Suivant</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <small>
+        Les recherches sont effectuées localement dans votre navigateur.
+      </small>
+    </footer>
+  </body>
+</html>
