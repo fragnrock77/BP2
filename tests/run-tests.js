@@ -6,6 +6,17 @@ const {
   evaluateQuery,
   convertRowsToCsv,
   buildCaches,
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+  aggregateDatasets,
+
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+  aggregateDatasets,
+
+ main
+ main
+ main
   __setTestState,
   __getTestState,
 } = require('../app.js');
@@ -130,6 +141,88 @@ test('buildCaches keeps caches synchronised', () => {
   assert.ok(state.lowerRowTextCache[0].includes('alice'));
 });
 
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+ main
+test('aggregateDatasets merges multiple selections with file origin column', () => {
+  const datasetA = {
+    id: 'dataset-a',
+    displayName: 'clients.csv',
+    baseName: 'clients',
+    resolvedHeaders: ['Nom', 'Statut'],
+    rows: [
+      ['Alice', 'Active'],
+      ['Bob', 'Inactif'],
+    ],
+  };
+
+  const datasetB = {
+    id: 'dataset-b',
+    displayName: 'scores.xlsx',
+    baseName: 'scores',
+    resolvedHeaders: ['Nom', 'Score'],
+    rows: [['Alice', 42]],
+  };
+
+  const { headers, rows, fileName, selectedCount } = aggregateDatasets(
+    [datasetA, datasetB],
+    new Set(['dataset-a', 'dataset-b'])
+  );
+
+  assert.deepStrictEqual(headers, ['Fichier', 'Nom', 'Statut', 'Score']);
+  assert.strictEqual(rows.length, 3);
+  assert.deepStrictEqual(rows[0], ['clients.csv', 'Alice', 'Active', '']);
+  assert.deepStrictEqual(rows[2], ['scores.xlsx', 'Alice', '', 42]);
+  assert.strictEqual(fileName, 'multi_fichiers');
+  assert.strictEqual(selectedCount, 2);
+});
+
+test('aggregateDatasets keeps metadata when a single dataset is selected', () => {
+  const dataset = {
+    id: 'dataset-unique',
+    displayName: 'unique.csv',
+    baseName: 'unique',
+    resolvedHeaders: ['Nom'],
+    rows: [['Alice']],
+  };
+
+  const { headers, rows, fileName, selectedCount } = aggregateDatasets(
+    [dataset],
+    new Set(['dataset-unique'])
+  );
+
+  assert.deepStrictEqual(headers, ['Fichier', 'Nom']);
+  assert.deepStrictEqual(rows, [['unique.csv', 'Alice']]);
+  assert.strictEqual(fileName, 'unique');
+  assert.strictEqual(selectedCount, 1);
+});
+
+test('aggregateDatasets returns empty payload when nothing is selected', () => {
+  const dataset = {
+    id: 'dataset-ignored',
+    displayName: 'ignored.csv',
+    baseName: 'ignored',
+    resolvedHeaders: ['Nom'],
+    rows: [['Alice']],
+  };
+
+  const result = aggregateDatasets([dataset], new Set());
+
+  assert.deepStrictEqual(result.headers, []);
+  assert.deepStrictEqual(result.rows, []);
+  assert.strictEqual(result.fileName, '');
+  assert.strictEqual(result.selectedCount, 0);
+});
+
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
+
+ main
+ main
+ main
 const failed = results.filter((result) => result.status === 'failed');
 results.forEach((result) => {
   if (result.status === 'passed') {

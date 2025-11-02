@@ -145,6 +145,64 @@ input[type="file"] {
   color: var(--text-muted);
 }
 
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+
+ codex/develop-web-app-for-importing-and-searching-files
+ main
+ main
+.file-list {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background: var(--surface);
+}
+
+.file-list h2 {
+  margin-top: 0;
+}
+
+.file-list__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-alt);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.file-item input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+.file-item:hover,
+.file-item:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+
+
+ main
+ main
+ main
+ main
 .error {
   margin-top: 0.75rem;
   color: var(--danger);
