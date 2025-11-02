@@ -6,6 +6,10 @@ const progressLabel = doc ? doc.getElementById("progress-label") : null;
 const errorMessage = doc ? doc.getElementById("error-message") : null;
 const controlsSection = doc ? doc.getElementById("controls") : { hidden: true };
 const resultsSection = doc ? doc.getElementById("results") : { hidden: true };
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+const fileListSection = doc ? doc.getElementById("file-list") : { hidden: true };
+const fileListItems = doc ? doc.getElementById("file-list-items") : null;
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
 const fileListSection = doc ? doc.getElementById("file-list") : { hidden: true };
 const fileListItems = doc ? doc.getElementById("file-list-items") : null;
@@ -14,6 +18,7 @@ const fileListItems = doc ? doc.getElementById("file-list-items") : null;
 const fileListSection = doc ? doc.getElementById("file-list") : { hidden: true };
 const fileListItems = doc ? doc.getElementById("file-list-items") : null;
 
+ main
  main
  main
 const searchInput = doc ? doc.getElementById("search-input") : { value: "" };
@@ -43,7 +48,10 @@ let rowTextCache = [];
 let lowerRowTextCache = [];
 let currentPage = 1;
 let currentFileName = "";
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
+ main
 let datasets = [];
 const selectedDatasetIds = new Set();
 let datasetCounter = 0;
@@ -68,6 +76,8 @@ function getUniqueDisplayName(name) {
 }
 
 function clearAggregatedData() {
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
 
  codex/develop-web-app-for-importing-and-searching-files
 let datasets = [];
@@ -80,6 +90,7 @@ function clearAggregatedData() {
 function resetState() {
  main
  main
+ main
   headers = [];
   rawRows = [];
   filteredRows = [];
@@ -87,9 +98,12 @@ function resetState() {
   lowerRowTextCache = [];
   currentPage = 1;
   currentFileName = "";
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
 
  codex/develop-web-app-for-importing-and-searching-files
+ main
  main
   pagination.hidden = true;
   if (dataTable) {
@@ -103,6 +117,10 @@ function resetState() {
   datasets = [];
   selectedDatasetIds.clear();
   datasetCounter = 0;
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+  datasetKeyIndex.clear();
+  displayNameCounts.clear();
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
   datasetKeyIndex.clear();
   displayNameCounts.clear();
@@ -110,13 +128,17 @@ function resetState() {
 
  main
  main
+ main
   updateProgress(0, "");
   clearError();
   controlsSection.hidden = true;
   resultsSection.hidden = true;
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
 
  codex/develop-web-app-for-importing-and-searching-files
+ main
  main
   if (fileListSection) {
     fileListSection.hidden = true;
@@ -145,7 +167,10 @@ function sanitizeFileName(name) {
   return name.replace(/\.[^.]+$/, "");
 }
 
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
+ main
 function addDataset(file, parsed, key = getFileKey(file)) {
   const { headers: parsedHeaders = [], rows = [] } = parsed;
   const columnCount = rows.reduce((max, row) => Math.max(max, row.length), parsedHeaders.length);
@@ -176,6 +201,8 @@ function addDataset(file, parsed, key = getFileKey(file)) {
     name: file.name,
     displayName: getUniqueDisplayName(file.name),
     baseName,
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
 
 function addDataset(file, parsed) {
   const { headers: parsedHeaders = [], rows = [] } = parsed;
@@ -187,11 +214,15 @@ function addDataset(file, parsed) {
     displayName: file.name,
     baseName: sanitizeFileName(file.name),
  main
+ main
     headers: parsedHeaders,
     resolvedHeaders,
     rows,
     columnCount,
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
+ main
     fileKey: key,
   };
   datasetCounter += 1;
@@ -199,11 +230,14 @@ function addDataset(file, parsed) {
   datasetKeyIndex.set(key, datasets.length - 1);
   selectedDatasetIds.add(dataset.id);
   return dataset;
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
 
   };
   datasetCounter += 1;
   datasets.push(dataset);
   selectedDatasetIds.add(dataset.id);
+ main
  main
 }
 
@@ -259,7 +293,10 @@ function renderFileList() {
   }
 }
 
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
+ main
 function aggregateDatasets(allDatasets, selectedIds) {
   const selected = allDatasets.filter((dataset) => selectedIds.has(dataset.id));
   if (!selected.length) {
@@ -269,6 +306,8 @@ function aggregateDatasets(allDatasets, selectedIds) {
       fileName: "",
       selectedCount: 0,
     };
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
 
 function rebuildAggregatedData({ preserveSearch = true } = {}) {
   clearAggregatedData();
@@ -283,13 +322,17 @@ function rebuildAggregatedData({ preserveSearch = true } = {}) {
     resultsSection.hidden = true;
     return;
  main
+ main
   }
 
   const combinedHeaders = ["Fichier"];
   const headerSet = new Set(combinedHeaders);
 
   selected.forEach((dataset) => {
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
+ main
     const datasetHeaders = Array.isArray(dataset.resolvedHeaders)
       ? dataset.resolvedHeaders
       : resolveHeaders(dataset.headers, dataset.columnCount);
@@ -301,11 +344,14 @@ function rebuildAggregatedData({ preserveSearch = true } = {}) {
       if (!headerSet.has(safeHeader)) {
         headerSet.add(safeHeader);
         combinedHeaders.push(safeHeader);
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
 
     dataset.resolvedHeaders.forEach((headerName) => {
       if (!headerSet.has(headerName)) {
         headerSet.add(headerName);
         combinedHeaders.push(headerName);
+ main
  main
       }
     });
@@ -316,7 +362,10 @@ function rebuildAggregatedData({ preserveSearch = true } = {}) {
     headerIndexMap.set(name, index);
   });
 
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
+ main
   const aggregatedRows = [];
   selected.forEach((dataset) => {
     const datasetHeaders = Array.isArray(dataset.resolvedHeaders)
@@ -392,6 +441,8 @@ function rebuildAggregatedData({ preserveSearch = true } = {}) {
   }
 
   renderPage(1);
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
 
   rawRows = [];
   selected.forEach((dataset) => {
@@ -434,6 +485,7 @@ function rebuildAggregatedData({ preserveSearch = true } = {}) {
   resultStats.textContent = "";
  main
  main
+ main
 }
 
 function showError(message) {
@@ -468,29 +520,27 @@ function formatBytes(bytes) {
   return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
+async function handleFiles(fileList) {
+  const incomingFiles = Array.from(fileList || []);
+  if (!incomingFiles.length) return;
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
 async function handleFiles(fileList) {
   if (!fileList || !fileList.length) return;
+ main
   clearError();
 
   const hadExistingDatasets = datasets.length > 0;
 
-
- codex/develop-web-app-for-importing-and-searching-files
-async function handleFiles(fileList) {
-  if (!fileList || !fileList.length) return;
-  resetState();
-
-
-async function handleFiles(files) {
-  resetState();
-  if (!files || !files.length) return;
-  const file = files[0];
- main
- main
   if (fileInput) {
     fileInput.value = "";
   }
+
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+  const errors = [];
+  const validFiles = [];
+
+  incomingFiles.forEach((file) => {
 
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
 
@@ -500,6 +550,7 @@ async function handleFiles(files) {
   const validFiles = [];
 
   Array.from(fileList).forEach((file) => {
+ main
     if (file.size > MAX_FILE_SIZE) {
       errors.push(
         `Le fichier "${file.name}" est trop volumineux (${formatBytes(file.size)}). Limite : ${formatBytes(
@@ -515,11 +566,16 @@ async function handleFiles(files) {
       return;
     }
 
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+    const key = getFileKey(file);
+    validFiles.push({ file, extension, key });
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
     const key = getFileKey(file);
     validFiles.push({ file, extension, key });
 
     validFiles.push({ file, extension });
+ main
  main
   });
 
@@ -532,17 +588,23 @@ async function handleFiles(files) {
 
   const totalSize = validFiles.reduce((sum, entry) => sum + entry.file.size, 0);
   let processedSize = 0;
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
+ main
   let updatedDatasets = false;
 
   for (let index = 0; index < validFiles.length; index += 1) {
     const { file, extension, key } = validFiles[index];
+
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
 
 
   for (let index = 0; index < validFiles.length; index += 1) {
     const { file, extension } = validFiles[index];
  main
 
+ main
     const progressCallback = (percent, label) => {
       const normalized = percent / 100;
       const totalPercent = totalSize
@@ -571,11 +633,16 @@ async function handleFiles(files) {
         continue;
       }
 
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+      addDataset(file, parsed, key);
+      updatedDatasets = true;
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
       addDataset(file, parsed, key);
       updatedDatasets = true;
 
       addDataset(file, parsed);
+ main
  main
     } catch (error) {
       console.error(error);
@@ -590,12 +657,17 @@ async function handleFiles(files) {
     );
   }
 
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
+ main
   if (updatedDatasets) {
     renderFileList();
     const preserveSearch = hadExistingDatasets && Boolean(searchInput.value.trim());
     rebuildAggregatedData({ preserveSearch });
     updateProgress(100, "Chargement terminé");
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
 
   renderFileList();
 
@@ -605,6 +677,7 @@ async function handleFiles(files) {
     updateProgress(100, "Chargement terminé");
   } else {
     updateProgress(0, "");
+ main
  main
   }
 
@@ -616,6 +689,8 @@ async function handleFiles(files) {
 }
 
 function parseCsv(file, progressCallback = updateProgress) {
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
 
 
@@ -672,6 +747,7 @@ function parseCsv(file, progressCallback = updateProgress) {
 function parseCsv(file) {
  main
  main
+ main
   return new Promise((resolve, reject) => {
     const rows = [];
     let headerRow = null;
@@ -697,6 +773,9 @@ function parseCsv(file) {
 
         totalRows += 1;
         const percent = Math.min(99, Math.round((meta.cursor / file.size) * 100));
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+        progressCallback(percent, `${totalRows.toLocaleString()} lignes lues`);
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
         progressCallback(percent, `${totalRows.toLocaleString()} lignes lues`);
 
@@ -704,6 +783,7 @@ function parseCsv(file) {
         progressCallback(percent, `${totalRows.toLocaleString()} lignes lues`);
 
         updateProgress(percent, `${totalRows.toLocaleString()} lignes lues`);
+ main
  main
  main
       },
@@ -717,21 +797,27 @@ function parseCsv(file) {
   });
 }
 
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
 
  codex/develop-web-app-for-importing-and-searching-files
+ main
  main
 async function parseXlsx(file, progressCallback = updateProgress) {
   progressCallback(10, "Lecture du classeur");
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data, { type: "array", dense: true });
   progressCallback(60, "Extraction des feuilles");
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
 
 
 async function parseXlsx(file) {
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data, { type: "array", dense: true });
+ main
  main
  main
   const sheetName = workbook.SheetNames[0];
@@ -741,12 +827,16 @@ async function parseXlsx(file) {
   const sheet = workbook.Sheets[sheetName];
   const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
   const [headerRow, ...rows] = sheetData;
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+  progressCallback(90, "Conversion terminée");
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
   progressCallback(90, "Conversion terminée");
 
  codex/develop-web-app-for-importing-and-searching-files
   progressCallback(90, "Conversion terminée");
 
+ main
  main
  main
   return { headers: headerRow, rows };
@@ -1140,7 +1230,15 @@ function attachEvents() {
 }
 
 if (doc) {
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+  if (doc.readyState === "loading") {
+    doc.addEventListener("DOMContentLoaded", attachEvents);
+  } else {
+    attachEvents();
+  }
+
   doc.addEventListener("DOMContentLoaded", attachEvents);
+ main
 }
 
 function __setTestState(state) {
@@ -1187,9 +1285,13 @@ if (typeof module !== "undefined" && module.exports) {
     matchRow,
     convertRowsToCsv,
     buildCaches,
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+    aggregateDatasets,
+
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
     aggregateDatasets,
 
+ main
  main
     __setTestState,
     __getTestState,
