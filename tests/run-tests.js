@@ -6,7 +6,14 @@ const {
   evaluateQuery,
   convertRowsToCsv,
   buildCaches,
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
   aggregateDatasets,
+
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+  aggregateDatasets,
+
+ main
+ main
   __setTestState,
   __getTestState,
 } = require('../app.js');
@@ -131,6 +138,10 @@ test('buildCaches keeps caches synchronised', () => {
   assert.ok(state.lowerRowTextCache[0].includes('alice'));
 });
 
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
+ codex/develop-web-app-for-importing-and-searching-files-1kckq0
+ main
 test('aggregateDatasets merges multiple selections with file origin column', () => {
   const datasetA = {
     id: 'dataset-a',
@@ -201,6 +212,11 @@ test('aggregateDatasets returns empty payload when nothing is selected', () => {
   assert.strictEqual(result.selectedCount, 0);
 });
 
+ codex/develop-web-app-for-importing-and-searching-files-ig2zav
+
+
+ main
+ main
 const failed = results.filter((result) => result.status === 'failed');
 results.forEach((result) => {
   if (result.status === 'passed') {
