@@ -6,6 +6,8 @@ const progressLabel = doc ? doc.getElementById("progress-label") : null;
 const errorMessage = doc ? doc.getElementById("error-message") : null;
 const controlsSection = doc ? doc.getElementById("controls") : { hidden: true };
 const resultsSection = doc ? doc.getElementById("results") : { hidden: true };
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
 const fileListSection = doc ? doc.getElementById("file-list") : { hidden: true };
 const fileListItems = doc ? doc.getElementById("file-list-items") : null;
@@ -18,6 +20,7 @@ const fileListItems = doc ? doc.getElementById("file-list-items") : null;
 const fileListSection = doc ? doc.getElementById("file-list") : { hidden: true };
 const fileListItems = doc ? doc.getElementById("file-list-items") : null;
 
+ main
  main
  main
  main
@@ -48,6 +51,9 @@ let rowTextCache = [];
 let lowerRowTextCache = [];
 let currentPage = 1;
 let currentFileName = "";
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+function resetState() {
+
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
 
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
@@ -91,6 +97,7 @@ function resetState() {
  main
  main
  main
+ main
   headers = [];
   rawRows = [];
   filteredRows = [];
@@ -98,6 +105,8 @@ function resetState() {
   lowerRowTextCache = [];
   currentPage = 1;
   currentFileName = "";
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
 
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
@@ -105,11 +114,14 @@ function resetState() {
  codex/develop-web-app-for-importing-and-searching-files
  main
  main
+ main
   pagination.hidden = true;
   if (dataTable) {
     dataTable.innerHTML = "";
   }
   resultStats.textContent = "";
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
 }
 
 function resetState() {
@@ -129,10 +141,21 @@ function resetState() {
  main
  main
  main
+ main
   updateProgress(0, "");
   clearError();
   controlsSection.hidden = true;
   resultsSection.hidden = true;
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+  if (searchInput) {
+    searchInput.value = "";
+  }
+  if (caseSensitiveToggle) {
+    caseSensitiveToggle.checked = false;
+  }
+  if (exactMatchToggle) {
+    exactMatchToggle.checked = false;
+
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
 
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
@@ -145,6 +168,7 @@ function resetState() {
   }
   if (fileListItems) {
     fileListItems.innerHTML = "";
+ main
   }
 }
 
@@ -166,6 +190,46 @@ function sanitizeFileName(name) {
   if (!name) return "";
   return name.replace(/\.[^.]+$/, "");
 }
+
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+function applyDataset(file, parsed) {
+  const { headers: parsedHeaders = [], rows = [] } = parsed || {};
+  if (!rows.length) {
+    throw new Error(`Aucune donnée trouvée dans "${file.name}".`);
+  }
+
+  const columnCount = rows.reduce((max, row) => Math.max(max, row.length), parsedHeaders.length);
+  headers = resolveHeaders(parsedHeaders, columnCount);
+  rawRows = rows.map((row) => {
+    if (!Array.isArray(row)) return [];
+    if (row.length >= columnCount) {
+      return row.slice(0, columnCount);
+    }
+    const padded = new Array(columnCount).fill("");
+    for (let index = 0; index < columnCount; index += 1) {
+      padded[index] = row[index] === undefined || row[index] === null ? "" : row[index];
+    }
+    return padded;
+  });
+
+  buildCaches();
+  filteredRows = [...rawRows];
+  currentPage = 1;
+  currentFileName = sanitizeFileName(file.name);
+
+  if (searchInput) {
+    searchInput.value = "";
+  }
+  if (caseSensitiveToggle) {
+    caseSensitiveToggle.checked = false;
+  }
+  if (exactMatchToggle) {
+    exactMatchToggle.checked = false;
+  }
+
+  controlsSection.hidden = false;
+  resultsSection.hidden = false;
+  renderPage(1);
 
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
 
@@ -486,6 +550,7 @@ function rebuildAggregatedData({ preserveSearch = true } = {}) {
  main
  main
  main
+ main
 }
 
 function showError(message) {
@@ -523,6 +588,18 @@ function formatBytes(bytes) {
 async function handleFiles(fileList) {
   const incomingFiles = Array.from(fileList || []);
   if (!incomingFiles.length) return;
+
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+  if (incomingFiles.length > 1) {
+    showError("Veuillez sélectionner un seul fichier à la fois.");
+    return;
+  }
+
+  const [file] = incomingFiles;
+
+  if (file.size > MAX_FILE_SIZE) {
+    showError(
+      `Le fichier "${file.name}" est trop volumineux (${formatBytes(file.size)}). Limite : ${formatBytes(
 
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
 async function handleFiles(fileList) {
@@ -697,6 +774,7 @@ function parseCsv(file, progressCallback = updateProgress) {
   if (file.size > MAX_FILE_SIZE) {
     showError(
       `Le fichier est trop volumineux (${formatBytes(file.size)}). Limite : ${formatBytes(
+ main
         MAX_FILE_SIZE
       )}.`
     );
@@ -705,16 +783,52 @@ function parseCsv(file, progressCallback = updateProgress) {
 
   const extension = file.name.split(".").pop()?.toLowerCase();
   if (!extension || !["csv", "xlsx", "xls"].includes(extension)) {
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+    showError(`Format non supporté pour "${file.name}".`);
+    return;
+  }
+
+  clearError();
+  updateProgress(0, `Lecture de ${file.name}`);
+
     showError("Format non supporté. Seuls les fichiers CSV ou XLSX sont acceptés.");
     return;
   }
 
   currentFileName = file.name.replace(/\.[^.]+$/, "");
   updateProgress(0, "Préparation...");
+ main
 
   try {
     let parsed;
     if (extension === "csv") {
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+      parsed = await parseCsv(file, (percent, label) => {
+        const statusLabel = label || `${Math.round(percent)}%`;
+        updateProgress(Math.min(99, percent), `${file.name} • ${statusLabel}`);
+      });
+    } else {
+      parsed = await parseXlsx(file, (percent, label) => {
+        const statusLabel = label || `${Math.round(percent)}%`;
+        updateProgress(Math.min(99, percent), `${file.name} • ${statusLabel}`);
+      });
+    }
+
+    applyDataset(file, parsed);
+    updateProgress(100, `Chargement de ${file.name} terminé`);
+  } catch (error) {
+    console.error(error);
+    const message = error && error.message ? error.message : `Impossible de lire "${file.name}".`;
+    showError(message);
+  } finally {
+    if (fileInput) {
+      fileInput.value = "";
+    }
+  }
+}
+
+function parseCsv(file, progressCallback = updateProgress) {
+
       parsed = await parseCsv(file);
     } else {
       parsed = await parseXlsx(file);
@@ -748,6 +862,7 @@ function parseCsv(file) {
  main
  main
  main
+ main
   return new Promise((resolve, reject) => {
     const rows = [];
     let headerRow = null;
@@ -773,6 +888,9 @@ function parseCsv(file) {
 
         totalRows += 1;
         const percent = Math.min(99, Math.round((meta.cursor / file.size) * 100));
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+        progressCallback(percent, `${totalRows.toLocaleString()} lignes lues`);
+
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
         progressCallback(percent, `${totalRows.toLocaleString()} lignes lues`);
 
@@ -783,6 +901,7 @@ function parseCsv(file) {
         progressCallback(percent, `${totalRows.toLocaleString()} lignes lues`);
 
         updateProgress(percent, `${totalRows.toLocaleString()} lignes lues`);
+ main
  main
  main
  main
@@ -797,6 +916,8 @@ function parseCsv(file) {
   });
 }
 
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
 
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
@@ -804,11 +925,14 @@ function parseCsv(file) {
  codex/develop-web-app-for-importing-and-searching-files
  main
  main
+ main
 async function parseXlsx(file, progressCallback = updateProgress) {
   progressCallback(10, "Lecture du classeur");
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data, { type: "array", dense: true });
   progressCallback(60, "Extraction des feuilles");
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
 
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
@@ -820,6 +944,7 @@ async function parseXlsx(file) {
  main
  main
  main
+ main
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
     throw new Error("Le fichier ne contient pas de feuille exploitable.");
@@ -827,6 +952,9 @@ async function parseXlsx(file) {
   const sheet = workbook.Sheets[sheetName];
   const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
   const [headerRow, ...rows] = sheetData;
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+  progressCallback(90, "Conversion terminée");
+
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
   progressCallback(90, "Conversion terminée");
 
@@ -836,6 +964,7 @@ async function parseXlsx(file) {
  codex/develop-web-app-for-importing-and-searching-files
   progressCallback(90, "Conversion terminée");
 
+ main
  main
  main
  main
@@ -1230,14 +1359,20 @@ function attachEvents() {
 }
 
 if (doc) {
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
+ main
   if (doc.readyState === "loading") {
     doc.addEventListener("DOMContentLoaded", attachEvents);
   } else {
     attachEvents();
   }
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
 
   doc.addEventListener("DOMContentLoaded", attachEvents);
+ main
  main
 }
 
@@ -1285,12 +1420,15 @@ if (typeof module !== "undefined" && module.exports) {
     matchRow,
     convertRowsToCsv,
     buildCaches,
+ codex/develop-web-app-for-importing-and-searching-files-vnhkkj
+
  codex/develop-web-app-for-importing-and-searching-files-ig2zav
     aggregateDatasets,
 
  codex/develop-web-app-for-importing-and-searching-files-1kckq0
     aggregateDatasets,
 
+ main
  main
  main
     __setTestState,
